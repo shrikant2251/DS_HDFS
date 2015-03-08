@@ -83,6 +83,7 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 				openFileResponse.blockNums = (ArrayList<Integer>) AllDataStructures.fileNameToBlockNum
 						.get(openFileRequest.fileName);
 			} else {
+				System.out.println("NameNode openFile method write new file created");
 				ArrayList<Integer> blocks = new ArrayList<Integer>();
 				AllDataStructures.fileNameToBlockNum.put(
 						openFileRequest.fileName, blocks);
@@ -150,8 +151,7 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 	public byte[] assignBlock(byte[] blockLocations) throws RemoteException {
 		// TODO Auto-generated method stub
 
-		AssignBlockRequest assignBlockRequest = new AssignBlockRequest(
-				blockLocations);
+		AssignBlockRequest assignBlockRequest = new AssignBlockRequest(blockLocations);
 		AssignBlockResponse assignBlockResponse = new AssignBlockResponse();
 		ArrayList<DataNodeLocation> node = new ArrayList<DataNodeLocation>();
 
@@ -163,7 +163,10 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		// randomly add replicationFactor DataNodeLocations to node list
 		while (node.size() < AllDataStructures.replicationFactor
 				&& count < size) {
-			int random = randomGen.nextInt(size);
+			//int random = randomGen.nextInt(size);
+			int random = 1;
+			System.out.println("NameNode AssignBlock Method random = " + random);
+			System.out.println(AllDataStructures.idToDataNode.get(random));
 			if (!node.contains(AllDataStructures.idToDataNode.get(random))
 					&& AllDataStructures.idToDataNode.get(random).tstamp >= System
 							.currentTimeMillis()
@@ -171,7 +174,7 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 				node.add(AllDataStructures.idToDataNode.get(random));
 			}
 			count++;
-			if (count == size) {
+			if (count > size) {
 				status = -1;
 				break;
 			}
@@ -243,6 +246,7 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		// TODO Auto-generated method stub
 		BlockReportRequest blockReportRequest = new BlockReportRequest(input);
 		BlockReportResponse blockReportResponse = new BlockReportResponse();
+	//	System.out.println("NameNode blockReport id = " + blockReportRequest.id);
 		if(!AllDataStructures.idToDataNode.containsKey(blockReportRequest.id)){
 			AllDataStructures.idToDataNode.put(blockReportRequest.id, blockReportRequest.location);
 		}
@@ -269,9 +273,8 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		HeartBeatRequest heartBeatRequest = new HeartBeatRequest(input);
 		HeartBeatResponse hearBeatResponse = new HeartBeatResponse();
 		if (AllDataStructures.idToDataNode.containsKey(heartBeatRequest.id)) {
-			Date date = new Date();
-			AllDataStructures.idToDataNode.get(heartBeatRequest.id).tstamp = date
-					.getTime();
+	//		Date date = new Date();
+			AllDataStructures.idToDataNode.get(heartBeatRequest.id).tstamp = System.currentTimeMillis();
 			hearBeatResponse.status = 1;
 		} else {
 			hearBeatResponse.status = -1;
@@ -279,13 +282,19 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		return hearBeatResponse.toProto();
 	}
 
+	public long getTimeStamp(int id) throws RemoteException {
+		if(AllDataStructures.idToDataNode.containsKey(id))
+			return AllDataStructures.idToDataNode.get(id).tstamp;
+		else
+			return 0;
+	}
 	public void test() throws RemoteException {
 		System.out.println("test() Method NameNode success");
 	}
 
 	public static void main(String[] args) {
 		try {
-			Registry reg = LocateRegistry.createRegistry(1099);
+			Registry reg = LocateRegistry.createRegistry(AllDataStructures.nameNodePort);
 			NameNode obj = new NameNode();
 			reg.rebind("NameNode", obj);
 			System.out.println("NameNode server is running");

@@ -34,4 +34,5 @@ public interface INameNode extends Remote{
 	/* Heartbeat messages between NameNode and DataNode */
 	byte[] heartBeat(byte hearBeat[]) throws RemoteException;
 	public void test() throws RemoteException;
+	public long getTimeStamp(int id) throws RemoteException;
 }

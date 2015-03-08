@@ -18,7 +18,10 @@ public interface RequestResponse {
 		public BlockReportRequest(int _id,DataNodeLocation loc,ArrayList<Integer> blocks){
 			id = _id;
 			location = loc;
-			blockNumbers = blocks;
+			blockNumbers = new ArrayList<Integer>();
+			for(int i:blocks)
+			blockNumbers.add(i);// = blocks;
+			//System.out.println("ReqResp blockReportRequest Method id=" + _id + " " + loc + " " + blocks);
 		}
 		public BlockReportRequest(byte []input){
 			Hdfs.BlockReportRequest builder = null;
@@ -28,6 +31,7 @@ public interface RequestResponse {
 			catch(InvalidProtocolBufferException e){
 				e.printStackTrace();
 			}
+			id = builder.getId();
 			blockNumbers = new ArrayList<Integer>();
 			for(int i: builder.getBlockNumbersList())
 				blockNumbers.add(i);
@@ -35,6 +39,8 @@ public interface RequestResponse {
 		}
 		public byte[] toProto(){
 			Hdfs.BlockReportRequest.Builder builder = Hdfs.BlockReportRequest.newBuilder();
+		//	System.out.println("BlockReportRequest toProto method id = " + id + " " + location + " " + blockNumbers);
+			builder.setId(id);
 			builder.setLocation(location.toProtoObject());
 			for(int i:blockNumbers)
 				builder.addBlockNumbers(i);
@@ -45,7 +51,7 @@ public interface RequestResponse {
 	public class BlockReportResponse{
 		ArrayList<Integer> status;
 		public BlockReportResponse(){
-			
+			status = new ArrayList<Integer>();
 		}
 		public BlockReportResponse(ArrayList<Integer> s){
 			status = s;	
@@ -395,6 +401,7 @@ public interface RequestResponse {
 		public int status;
 		public BlockLocations newBlock;
 		public AssignBlockResponse() {
+			newBlock = new BlockLocations();
 		}
 		public AssignBlockResponse(int st, BlockLocations blockLoc){
 			status = st;

@@ -22,7 +22,7 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 		// TODO Auto-generated constructor stub
 	}
 
-	public static int dataNodeID = 10,NameNodeport = 1099,DataNodePort=5000;
+	public static int dataNodeID = 1,NameNodeport = 1099,DataNodePort=5000;
 	public static String nameNodeIP = "127.0.0.1";
 	public static int heartBeatRate = 5000;
 	String directoryName = "blockDirectory";
@@ -56,6 +56,7 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 	public byte[] writeBlock(byte[] input) throws RemoteException {
 		// TODO Auto-generated method stub
 		// status successful = 1 unsuccessful = -1
+		System.out.println("DataNode writeBlock");
 		int status = 1;
 		WriteBlockRequest writeBlockRequest = new WriteBlockRequest(input);
 		WriteBlockResponse writeBlockResponse = new WriteBlockResponse();
@@ -140,30 +141,10 @@ class PerodicService extends TimerTask {
 		super();
 		this.in = in;
 	}
-
-	int packIP(byte[] bytes) {
-		int val = 0;
-		for (int i = 0; i < bytes.length; i++) {
-			val <<= 8;
-			val |= bytes[i] & 0xff;
-		}
-		return val;
-	}
-
-	byte[] unpackIP(int bytes) {
-		return new byte[] { (byte) ((bytes >>> 24) & 0xff),
-				(byte) ((bytes >>> 16) & 0xff), (byte) ((bytes >>> 8) & 0xff),
-				(byte) ((bytes) & 0xff) };
-	}
-
-	String intToIP(int ip) throws UnknownHostException {
-
-		return Inet4Address.getByAddress(unpackIP(ip)).getHostAddress();
-	}
-
+	IpConversion ipObj = new IpConversion();
 	byte[] generateBlockReport() throws UnknownHostException {
 		ArrayList<Integer> blockList = new ArrayList<Integer>();
-		int ip = packIP(Inet4Address.getLocalHost().getHostAddress().getBytes());
+		int ip = ipObj.packIP(Inet4Address.getLocalHost().getHostAddress().getBytes());
 		File file = new File("metadata");
 		if (file.exists()) {
 			FileInputStream fis;
@@ -183,9 +164,8 @@ class PerodicService extends TimerTask {
 				e.printStackTrace();
 			}
 		}
-		DataNodeLocation dataNodeLocation = new DataNodeLocation(ip, 1099);
-		BlockReportRequest blockReportRequest = new BlockReportRequest(
-				DataNode.dataNodeID, dataNodeLocation, blockList);
+		DataNodeLocation dataNodeLocation = new DataNodeLocation(ip,DataNode.DataNodePort);
+		BlockReportRequest blockReportRequest = new BlockReportRequest(	DataNode.dataNodeID, dataNodeLocation, blockList);
 		return blockReportRequest.toProto();
 	}
 
@@ -200,6 +180,7 @@ class PerodicService extends TimerTask {
 		try {
 			in.blockReport(generateBlockReport());
 			in.heartBeat(generateDataNodeAddress());
+			//System.out.println("DataNode alive !!!");
 		} catch (RemoteException | UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

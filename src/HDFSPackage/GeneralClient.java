@@ -12,28 +12,6 @@ import HDFSPackage.RequestResponse.*;
 
 public class GeneralClient {
 	
-	String intToIP(int ip) throws UnknownHostException
-	{
-		
-		return Inet4Address.getByAddress(unpackIP(ip)).getHostAddress();
-	}
-	
-	int packIP(byte[] bytes) {
-		int val = 0;
-		for (int i = 0; i < bytes.length; i++) {
-			val <<= 8;
-			val |= bytes[i] & 0xff;
-		}
-		return val;
-	}
-
-	byte[] unpackIP(int bytes) {
-		return new byte[] { (byte) ((bytes >>> 24) & 0xff),
-				(byte) ((bytes >>> 16) & 0xff), (byte) ((bytes >>> 8) & 0xff),
-				(byte) ((bytes) & 0xff) };
-	}
-
-	
 	/* openFile will return the response of openFileResponse*/
 	public byte[] open(String fileName, boolean forRead) {
 		byte[] response = new byte[1];
@@ -104,6 +82,7 @@ public class GeneralClient {
 
 		INameNode in = null;
 		IDataNode dataNode = null;
+		IpConversion ipObj = new IpConversion();
 		try {
 			Registry myreg = LocateRegistry.getRegistry(
 					AllDataStructures.nameNodeIP,
@@ -151,13 +130,12 @@ public class GeneralClient {
 						.get(j);
 
 				// check time stamp
-				if (dataNodeAddress.tstamp >= System.currentTimeMillis()
-						- AllDataStructures.thresholdTime) {
+				//if (dataNodeAddress.tstamp >= System.currentTimeMillis() - AllDataStructures.thresholdTime) {
 
 					// get rmi object
 					try {
 						Registry myreg = LocateRegistry.getRegistry(
-								intToIP(dataNodeAddress.ip),
+								ipObj.intToIP(dataNodeAddress.ip),
 								dataNodeAddress.port);
 						dataNode = (IDataNode) myreg.lookup("DataNode");
 
@@ -176,7 +154,7 @@ public class GeneralClient {
 					} catch (Exception e) {
 						continue;
 					}
-				}
+				//}
 			}
 			if (j == blockLocation.locations.size()) {
 				status = -1;
@@ -192,8 +170,7 @@ public class GeneralClient {
 		
 		int status = -1;
 		float dataSize = data.length;
-		int numOfBlocksReq = (int) Math.ceil(dataSize
-				/ AllDataStructures.blockSize);
+		int numOfBlocksReq = (int) Math.ceil(dataSize/ AllDataStructures.blockSize);
 
 		byte[] openResponse;
 		openResponse = open(fileName, false);
@@ -201,7 +178,7 @@ public class GeneralClient {
 
 		// check status of openFile
 		if (openFileResponse.status == -1) {
-
+			System.out.println("GeneralCLient write method Error in OpenFileResponse");
 			// openFile Unsuccessful
 			status = -1;
 			return status;
@@ -209,6 +186,7 @@ public class GeneralClient {
 
 		INameNode in = null;
 		IDataNode dataNode = null;
+		IpConversion ipObj = new IpConversion();
 		try {
 			Registry myreg = LocateRegistry.getRegistry(
 					AllDataStructures.nameNodeIP,
@@ -225,21 +203,20 @@ public class GeneralClient {
 		} else if (openFileResponse.status == 2) {
 
 			// create new file in write mode
+			System.out.println("GenClient Write Method status=2");
 			int i;
 			int offset = 0;
 			for (i = 0; i < numOfBlocksReq; i++) {
 				try {
-					AssignBlockRequest assignBlockRequest = new AssignBlockRequest(
-							openFileResponse.handle);
-					byte[] assignBlockRes = in.assignBlock(assignBlockRequest
-							.toProto());
+					AssignBlockRequest assignBlockRequest = new AssignBlockRequest(openFileResponse.handle);
+					byte[] assignBlockRes = in.assignBlock(assignBlockRequest.toProto());
 
-					AssignBlockResponse assignBlockResponse = new AssignBlockResponse(
-							assignBlockRes);
+					AssignBlockResponse assignBlockResponse = new AssignBlockResponse(assignBlockRes);
 
 					// assign block fails
 					if (assignBlockResponse.status == -1) {
 						status = -1;
+						System.out.println("GenClient write method assignBlockresponse error");
 						break;
 					}
 
@@ -250,14 +227,15 @@ public class GeneralClient {
 								.get(j);
 
 						// check time stamp
-						if (dataNodeAddress.tstamp >= System
-								.currentTimeMillis()
-								- AllDataStructures.thresholdTime) {
+						//long tempTime = System.currentTimeMillis();
+						//System.out.println("GenClient Write method checking timestamp for Write " +  dataNodeAddress.tstamp + " diff " + (tempTime - AllDataStructures.thresholdTime));
+						
+//						if (dataNodeAddress.tstamp <=  tempTime - AllDataStructures.thresholdTime) {
 
 							// get rmi object
 							try {
 								Registry myreg = LocateRegistry.getRegistry(
-										intToIP(dataNodeAddress.ip),
+										ipObj.intToIP(dataNodeAddress.ip),
 										dataNodeAddress.port);
 								dataNode = (IDataNode) myreg.lookup("DataNode");
 								
@@ -274,11 +252,13 @@ public class GeneralClient {
 								break; // if data node not available then
 										// failure
 							}
-						} else // if that data node not available
+						//}
+					/*else // if that data node not available
 						{
+							System.out.println(" Genclient write Data node not alive");
 							status = -1;
 							break; // if data node not available then failure
-						}
+						}*/
 					}
 
 				} catch (RemoteException e) {
@@ -289,18 +269,21 @@ public class GeneralClient {
 			}
 		}
 		// close file
-		status = close(openFileResponse.handle);
-		return status;
+		int status1 = close(openFileResponse.handle);
+		return status*status1;
 	}
 
 	public static void main(String[] args) {
 		try {
-			Registry myreg = LocateRegistry.getRegistry("127.0.0.1", 1099);
-			INameNode in = (INameNode) myreg.lookup("NameNode");
-			OpenFileRequest openFileRequest = new OpenFileRequest("temp.txt",
-					false);
-			in.openFile(openFileRequest.toProto());
-			in.test();
+		//	Registry myreg = LocateRegistry.getRegistry("127.0.0.1", 1099);
+		//	INameNode in = (INameNode) myreg.lookup("NameNode");
+//			OpenFileRequest openFileRequest = new OpenFileRequest("temp.txt",		false);
+			//in.openFile(openFileRequest.toProto());
+			GeneralClient client = new GeneralClient();
+			String data = "Shrikant";
+			int st = client.write("tmp.txt",data.getBytes() );
+			System.out.println("Main GenClient" + st);
+		//	in.test();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
