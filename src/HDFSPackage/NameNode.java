@@ -14,6 +14,7 @@ import java.util.Random;
 import HDFSPackage.RequestResponse.AssignBlockRequest;
 import HDFSPackage.RequestResponse.AssignBlockResponse;
 import HDFSPackage.RequestResponse.BlockLocationRequest;
+import HDFSPackage.RequestResponse.BlockLocations;
 import HDFSPackage.RequestResponse.BlockReportRequest;
 import HDFSPackage.RequestResponse.BlockReportResponse;
 import HDFSPackage.RequestResponse.CloseFileRequest;
@@ -125,10 +126,10 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		// iterate through each block number and add DataNodeLocation to list
 		for (int i = 0; i < blockLocationRequest.blockNums.size(); i++) {
 			int blknm = blockLocationRequest.blockNums.get(i);
-			RequestResponse.BlockLocations blockLocation = null;
+			RequestResponse.BlockLocations blockLocation = new BlockLocations();
 
 			// check block number is available in hashmap or not
-			if (AllDataStructures.blocNumToDataNodeLoc.get(blknm) != null)
+			if (AllDataStructures.blocNumToDataNodeLoc.containsKey(blknm))
 				blockLocation = new RequestResponse.BlockLocations(blknm,
 						AllDataStructures.blocNumToDataNodeLoc.get(blknm));
 			else {
@@ -177,8 +178,7 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		}
 
 		if (status == 1
-				&& AllDataStructures.fileHandleToFileName
-						.get(assignBlockRequest.handle) != null) {
+				&& AllDataStructures.fileHandleToFileName.containsKey(assignBlockRequest.handle)) {
 
 			// increase overall block number
 			AllDataStructures.blockNumber++;
@@ -243,6 +243,9 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		// TODO Auto-generated method stub
 		BlockReportRequest blockReportRequest = new BlockReportRequest(input);
 		BlockReportResponse blockReportResponse = new BlockReportResponse();
+		if(!AllDataStructures.idToDataNode.containsKey(blockReportRequest.id)){
+			AllDataStructures.idToDataNode.put(blockReportRequest.id, blockReportRequest.location);
+		}
 		ArrayList<DataNodeLocation> dataNode;
 		for (int block : blockReportRequest.blockNumbers) {
 			if (!AllDataStructures.blocNumToDataNodeLoc.containsKey(block)) {
@@ -277,7 +280,7 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 	}
 
 	public void test() throws RemoteException {
-		System.out.println("NameNode success");
+		System.out.println("test() Method NameNode success");
 	}
 
 	public static void main(String[] args) {

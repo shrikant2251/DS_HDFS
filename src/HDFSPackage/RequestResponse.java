@@ -15,7 +15,8 @@ public interface RequestResponse {
 		public int id; //identity of the DataNode. NameNode uses this ID for getting blocks
 		public DataNodeLocation location;
 		ArrayList<Integer> blockNumbers;
-		public BlockReportRequest(DataNodeLocation loc,ArrayList<Integer> blocks){
+		public BlockReportRequest(int _id,DataNodeLocation loc,ArrayList<Integer> blocks){
+			id = _id;
 			location = loc;
 			blockNumbers = blocks;
 		}

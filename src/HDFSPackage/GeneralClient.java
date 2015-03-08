@@ -1,16 +1,42 @@
 package HDFSPackage;
 
+import java.net.Inet4Address;
+import java.net.UnknownHostException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import HDFSPackage.RequestResponse.*;
 
 public class GeneralClient {
+	
+	String intToIP(int ip) throws UnknownHostException
+	{
+		
+		return Inet4Address.getByAddress(unpackIP(ip)).getHostAddress();
+	}
+	
+	int packIP(byte[] bytes) {
+		int val = 0;
+		for (int i = 0; i < bytes.length; i++) {
+			val <<= 8;
+			val |= bytes[i] & 0xff;
+		}
+		return val;
+	}
+
+	byte[] unpackIP(int bytes) {
+		return new byte[] { (byte) ((bytes >>> 24) & 0xff),
+				(byte) ((bytes >>> 16) & 0xff), (byte) ((bytes >>> 8) & 0xff),
+				(byte) ((bytes) & 0xff) };
+	}
+
+	
 	/* openFile will return the response of openFileResponse*/
 	public byte[] open(String fileName, boolean forRead) {
-		byte[] response = null;
+		byte[] response = new byte[1];
 		int status = 1;
 		try {
 			Registry myreg = LocateRegistry.getRegistry(
@@ -25,7 +51,7 @@ public class GeneralClient {
 			e.printStackTrace();
 		}
 		if (status == -1) {
-			OpenFileRespose openFileResponse = new OpenFileRespose(-1, -1, null);
+			OpenFileRespose openFileResponse = new OpenFileRespose(-1, -1, new ArrayList<Integer>());
 			response = openFileResponse.toProto();
 		}
 
@@ -131,7 +157,7 @@ public class GeneralClient {
 					// get rmi object
 					try {
 						Registry myreg = LocateRegistry.getRegistry(
-								Integer.toString(dataNodeAddress.ip),
+								intToIP(dataNodeAddress.ip),
 								dataNodeAddress.port);
 						dataNode = (IDataNode) myreg.lookup("DataNode");
 
@@ -163,6 +189,7 @@ public class GeneralClient {
 	}
 
 	public int write(String fileName, byte[] data) {
+		
 		int status = -1;
 		float dataSize = data.length;
 		int numOfBlocksReq = (int) Math.ceil(dataSize
@@ -230,7 +257,7 @@ public class GeneralClient {
 							// get rmi object
 							try {
 								Registry myreg = LocateRegistry.getRegistry(
-										Integer.toString(dataNodeAddress.ip),
+										intToIP(dataNodeAddress.ip),
 										dataNodeAddress.port);
 								dataNode = (IDataNode) myreg.lookup("DataNode");
 								
