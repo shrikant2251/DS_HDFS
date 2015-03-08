@@ -4,7 +4,8 @@ import java.io.*;
 import java.util.ArrayList;
 
 import HDFSPackage.RequestResponse.*;
-
+import java.rmi.Remote;
+import java.rmi.RemoteException;
 public class DataNode implements IDataNode{
 
 	@Override

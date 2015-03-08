@@ -5,24 +5,13 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Arrays;
 
-import HDFSPackage.RequestResponse.AssignBlockRequest;
-import HDFSPackage.RequestResponse.AssignBlockResponse;
-import HDFSPackage.RequestResponse.BlockLocationRequest;
-import HDFSPackage.RequestResponse.BlockLocationResponse;
-import HDFSPackage.RequestResponse.BlockLocations;
-import HDFSPackage.RequestResponse.CloseFileRequest;
-import HDFSPackage.RequestResponse.CloseFileResponse;
-import HDFSPackage.RequestResponse.DataNodeLocation;
-import HDFSPackage.RequestResponse.OpenFileRequest;
-import HDFSPackage.RequestResponse.OpenFileRespose;
-import HDFSPackage.RequestResponse.ReadBlockRequest;
-import HDFSPackage.RequestResponse.ReadBlockResponse;
+import HDFSPackage.RequestResponse.*;
 
 public class GeneralClient {
-	/* openFile will return the response of */
+	/* openFile will return the response of openFileResponse*/
 	public byte[] open(String fileName, boolean forRead) {
 		byte[] response = null;
-		int status = -1;
+		int status = 1;
 		try {
 			Registry myreg = LocateRegistry.getRegistry(
 					AllDataStructures.nameNodeIP,

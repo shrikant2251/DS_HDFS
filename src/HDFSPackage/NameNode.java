@@ -193,8 +193,7 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 			}
 			blockList.add(AllDataStructures.blockNumber);
 			AllDataStructures.fileNameToBlockNum.put(file, blockList);
-			// AllDataStructures.blocNumToDataNodeLoc.put(AllDataStructures.blockNumber,
-			// node);
+			AllDataStructures.blocNumToDataNodeLoc.put(AllDataStructures.blockNumber,node);
 			try {
 				FileWriter fw = new FileWriter(file, true);
 				BufferedWriter bw = new BufferedWriter(fw);
