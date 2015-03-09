@@ -344,7 +344,9 @@ public class GeneralClient {
 			client.write("temp12.txt", data.getBytes());
 			int st1 = client.read("tmp.txt");
 			System.out.println("Main GenClient status " + st + st1);
-			//*/client.list();
+			//*/
+			System.out.println("Git commt changes");
+			client.list();
 		//	in.test();
 		} catch (Exception e) {
 			e.printStackTrace();
