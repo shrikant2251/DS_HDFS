@@ -70,6 +70,9 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 			     }
 			    }
 			}	
+		}else {
+			System.out.println("Config file does not exists please check the location");
+			System.exit(0);
 		}
 	}
 

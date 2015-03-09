@@ -49,6 +49,9 @@ public class GeneralClient {
 			     }
 			    }
 			}	
+		}else {
+			System.out.println("Config file does not exists please check the location");
+			System.exit(0);
 		}
 	}
 	/* openFile will return the response of openFileResponse*/

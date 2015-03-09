@@ -82,6 +82,10 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 			    }
 			}	
 		}
+		else {
+			System.out.println("Config file does not exists please check the location");
+			System.exit(0);
+		}
 	}
 	@Override
 	public byte[] readBlock(byte[] input) throws RemoteException {

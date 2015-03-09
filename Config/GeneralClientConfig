@@ -1,0 +1,3 @@
+nameNodeIP=10.1.131.149
+nameNodePort=1099
+blockSize=1024
