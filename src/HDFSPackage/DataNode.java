@@ -2,6 +2,9 @@ package HDFSPackage;
 import com.google.protobuf.*;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -26,6 +29,8 @@ import HDFSPackage.RequestResponse.WriteBlockRequest;
 import HDFSPackage.RequestResponse.WriteBlockResponse;
 
 import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
@@ -42,7 +47,7 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 	}
 
 	public static int dataNodeID = 1,NameNodeport = 1099,DataNodePort=5000;
-	public static String nameNodeIP = "127.0.0.1";
+	public static String nameNodeIP = "127.0.0.1",dataNodeIP="127.0.0.1";
 	public static int heartBeatRate = 5000;
 	String directoryName = "blockDirectory";
 
@@ -65,6 +70,9 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 			     case "dataNodeID":
 			    	 				DataNode.dataNodeID=Integer.parseInt(array[1]);
 			    	 				break;
+			     case "dataNodeIP":
+ 	 					DataNode.dataNodeIP = new  String(array[1]);
+ 	 					break;
 			     case "dataNodePort":
  	 								DataNode.DataNodePort=Integer.parseInt(array[1]);
  	 								break;
@@ -205,7 +213,11 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+		/*if (System.getSecurityManager() == null) {
+            System.setSecurityManager(new SecurityManager());
+        }*/
 		try {
+			
 			Registry reg = LocateRegistry.createRegistry(DataNodePort);
 			DataNode obj = new DataNode();
 			reg.rebind("DataNode", obj);
@@ -216,6 +228,7 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 		Registry myreg;
 		INameNode in = null;
 		try {
+			System.out.println("NameNode IP : "+nameNodeIP);
 			myreg = LocateRegistry.getRegistry(nameNodeIP, NameNodeport);
 			in = (INameNode) myreg.lookup("NameNode");
 		} catch (Exception e) {
@@ -239,7 +252,9 @@ class PerodicService extends TimerTask {
 	IpConversion ipObj = new IpConversion();
 	byte[] generateBlockReport() throws UnknownHostException {
 		ArrayList<Integer> blockList = new ArrayList<Integer>();
-		int ip = ipObj.packIP(Inet4Address.getLocalHost().getAddress());
+		int ip = ipObj.packIP(Inet4Address.getByName(DataNode.dataNodeIP).getAddress());
+		//int ip = ipObj.packIP(DataNode.dataNodeIP.getBytes());
+		
 		File file = new File("metadata");
 		if (file.exists()) {
 			FileInputStream fis;

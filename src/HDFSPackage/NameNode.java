@@ -324,8 +324,10 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		// TODO Auto-generated method stub
 		HeartBeatRequest heartBeatRequest = new HeartBeatRequest(input);
 		HeartBeatResponse hearBeatResponse = new HeartBeatResponse();
+		
 		if (AllDataStructures.idToDataNode.containsKey(heartBeatRequest.id)) {
 	//		Date date = new Date();
+			//System.out.println("NameNode connected to Datanode id : " + heartBeatRequest.id);
 			AllDataStructures.idToDataNode.get(heartBeatRequest.id).tstamp = System.currentTimeMillis();
 			hearBeatResponse.status = 1;
 		} else {
@@ -360,8 +362,10 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		}
 		
 		try {
+			//System.setProperty( "java.rmi.server.hostname", AllDataStructures.nameNodeIP ) ;
 			Registry reg = LocateRegistry.createRegistry(AllDataStructures.nameNodePort);
 			NameNode obj = new NameNode();
+			
 			reg.rebind("NameNode", obj);
 			System.out.println("NameNode server is running");
 		} catch (Exception e) {

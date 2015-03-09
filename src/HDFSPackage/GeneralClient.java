@@ -342,11 +342,11 @@ public class GeneralClient {
 			
 		try {
 			GeneralClient client = new GeneralClient();
-			/*String data = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-			int st = client.write("tmp1.txt",data.getBytes() );
+			String data = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+			//int st = client.write("tmp1.txt",data.getBytes() );
 			client.write("temp12.txt", data.getBytes());
-			int st1 = client.read("tmp.txt");
-			System.out.println("Main GenClient status " + st + st1);
+			//int st1 = client.read("tmp.txt");
+			//System.out.println("Main GenClient status " + st + st1);
 			//*/
 			System.out.println("Git commt changes");
 			client.list();
