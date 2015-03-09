@@ -1,7 +1,12 @@
 package HDFSPackage;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -10,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.Set;
 
 import HDFSPackage.RequestResponse.AssignBlockRequest;
 import HDFSPackage.RequestResponse.AssignBlockResponse;
@@ -26,8 +32,47 @@ import HDFSPackage.RequestResponse.ListFilesRequest;
 import HDFSPackage.RequestResponse.ListFilesResponse;
 import HDFSPackage.RequestResponse.OpenFileRequest;
 import HDFSPackage.RequestResponse.OpenFileRespose;
-
+import com.google.protobuf.*;
 public class NameNode extends UnicastRemoteObject implements INameNode {
+	
+	public static void config(String filePath) throws FileNotFoundException, IOException
+	{
+		File file= new File(filePath);
+		if(file.exists())
+		{
+			try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+			    String line;
+			    while ((line = br.readLine()) != null) {
+			     String [] array = line.split("=");
+			     if(array.length !=2)
+			     {
+			    	 System.out.println("Error processing dataNodeConfigFile");
+			    	 return;
+			     }
+			     switch(array[0])
+			     {
+			     case "nameNodeIP":
+ 	 								AllDataStructures.nameNodeIP= new String(array[1]);
+ 	 								break;
+			     case "nameNodePort":
+ 	 								AllDataStructures.nameNodePort=Integer.parseInt(array[1]);
+ 	 								break;
+			     case "threshold":
+ 	 								AllDataStructures.thresholdTime=Integer.parseInt(array[1]);
+ 	 								break;
+			     case "blockSize":
+									AllDataStructures.blockSize=Integer.parseInt(array[1]);
+									break;
+			     case "replicationFactor":
+									AllDataStructures.replicationFactor=Integer.parseInt(array[1]);
+									break;
+	
+			     }
+			    }
+			}	
+		}
+	}
+
 	protected NameNode() throws RemoteException {
 		super();
 		// TODO Auto-generated constructor stub
@@ -115,26 +160,30 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 	public byte[] getBlockLocations(byte[] input) throws RemoteException {
 		// TODO Auto-generated method stub
 		// status successful = 1 unsuccessful = -1;
-
+		System.out.println("NameNode ****** + getBlockLocatoins entry");
+		String s = new String(input);
+		System.out.println("NameNode getBlockLocations input bytes " + s + input.length);
 		int status = 1;
-		BlockLocationRequest blockLocationRequest = new BlockLocationRequest(
-				input); // parse the request
-
+		BlockLocationRequest blockLocationRequest = new BlockLocationRequest(input); // parse the request
+		for(int i=0;i<blockLocationRequest.blockNums.size();i++)
+			System.out.println("NameNode getBlockLocs ####### "  + " " + blockLocationRequest.blockNums.get(i));
 		// list of block location which contain block number and list of
 		// DataNodeLocation
 		ArrayList<RequestResponse.BlockLocations> locationList = new ArrayList<RequestResponse.BlockLocations>();
 
+		System.out.println("NameNode getBlockLocation method size of blockNums = " + blockLocationRequest.blockNums.size());
 		// iterate through each block number and add DataNodeLocation to list
 		for (int i = 0; i < blockLocationRequest.blockNums.size(); i++) {
 			int blknm = blockLocationRequest.blockNums.get(i);
-			RequestResponse.BlockLocations blockLocation = new BlockLocations();
+			System.out.println("NameNode getBlockLocation Method block no " + blknm);
+			RequestResponse.BlockLocations blockLocation;
 
 			// check block number is available in hashmap or not
 			if (AllDataStructures.blocNumToDataNodeLoc.containsKey(blknm))
-				blockLocation = new RequestResponse.BlockLocations(blknm,
-						AllDataStructures.blocNumToDataNodeLoc.get(blknm));
+				blockLocation = new RequestResponse.BlockLocations(blknm,AllDataStructures.blocNumToDataNodeLoc.get(blknm));
 			else {
 				status = -1;
+				blockLocation = new RequestResponse.BlockLocations(blknm,new ArrayList<DataNodeLocation>());
 				break;
 			}
 
@@ -161,16 +210,19 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		// status successful = 1 unsuccessful =-1
 		int status = 1, count = 0;
 		// randomly add replicationFactor DataNodeLocations to node list
-		while (node.size() < AllDataStructures.replicationFactor
-				&& count < size) {
-			//int random = randomGen.nextInt(size);
-			int random = 1;
+		Set<Integer> idSet = AllDataStructures.idToDataNode.keySet();
+		int [] idArray = new int[idSet.size()];
+		int index = 0;
+		for( int id : idSet)
+		{
+			idArray[index++]=id;
+		}
+		while (node.size() < AllDataStructures.replicationFactor&& count < size) {
+			int randomIndex = randomGen.nextInt(size);
+			int random=idArray[randomIndex];
 			System.out.println("NameNode AssignBlock Method random = " + random);
 			System.out.println(AllDataStructures.idToDataNode.get(random));
-			if (!node.contains(AllDataStructures.idToDataNode.get(random))
-					&& AllDataStructures.idToDataNode.get(random).tstamp >= System
-							.currentTimeMillis()
-							- AllDataStructures.thresholdTime) {
+			if (!node.contains(AllDataStructures.idToDataNode.get(random))&& AllDataStructures.idToDataNode.get(random).tstamp >= System.currentTimeMillis() - AllDataStructures.thresholdTime) {
 				node.add(AllDataStructures.idToDataNode.get(random));
 			}
 			count++;
@@ -180,8 +232,7 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 			}
 		}
 
-		if (status == 1
-				&& AllDataStructures.fileHandleToFileName.containsKey(assignBlockRequest.handle)) {
+		if (status == 1	&& AllDataStructures.fileHandleToFileName.containsKey(assignBlockRequest.handle)) {
 
 			// increase overall block number
 			AllDataStructures.blockNumber++;
@@ -227,11 +278,9 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		ListFilesResponse listFilesResponse = new ListFilesResponse();
 		if (!AllDataStructures.fileNameToBlockNum.isEmpty()) {// There are some
 																// files in HDFS
-			Iterator<String> it = AllDataStructures.fileNameToBlockNum.keySet()
-					.iterator();
+			Iterator<String> it = AllDataStructures.fileNameToBlockNum.keySet().iterator();
 			while (it.hasNext()) {
-				listFilesResponse.fileNames.add(it.toString());
-				it.next();
+				listFilesResponse.fileNames.add(it.next());
 			}
 			listFilesResponse.status = 1;
 		} else {// There are no files in HDFS
@@ -293,6 +342,20 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 	}
 
 	public static void main(String[] args) {
+		System.out.println(args.length);
+		if(args.length != 1)
+		{
+			System.out.println("Invalid number of parameters");
+			System.out.println("Usage java <NameNode> <config File Path>");
+			System.exit(-1);
+		}
+		try {
+			config(args[0]);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
 		try {
 			Registry reg = LocateRegistry.createRegistry(AllDataStructures.nameNodePort);
 			NameNode obj = new NameNode();

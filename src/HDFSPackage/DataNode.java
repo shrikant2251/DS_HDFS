@@ -1,14 +1,33 @@
 package HDFSPackage;
-
+import com.google.protobuf.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import HDFSPackage.RequestResponse.*;
+import HDFSPackage.RequestResponse.ReadBlockRequest;
+import HDFSPackage.RequestResponse.AssignBlockRequest;
+import HDFSPackage.RequestResponse.AssignBlockResponse;
+import HDFSPackage.RequestResponse.BlockLocationRequest;
+import HDFSPackage.RequestResponse.BlockLocations;
+import HDFSPackage.RequestResponse.BlockReportRequest;
+import HDFSPackage.RequestResponse.BlockReportResponse;
+import HDFSPackage.RequestResponse.CloseFileRequest;
+import HDFSPackage.RequestResponse.CloseFileResponse;
+import HDFSPackage.RequestResponse.DataNodeLocation;
+import HDFSPackage.RequestResponse.HeartBeatRequest;
+import HDFSPackage.RequestResponse.HeartBeatResponse;
+import HDFSPackage.RequestResponse.ListFilesRequest;
+import HDFSPackage.RequestResponse.ListFilesResponse;
+import HDFSPackage.RequestResponse.OpenFileRequest;
+import HDFSPackage.RequestResponse.OpenFileRespose;
+import HDFSPackage.RequestResponse.ReadBlockResponse;
+import HDFSPackage.RequestResponse.WriteBlockRequest;
+import HDFSPackage.RequestResponse.WriteBlockResponse;
 
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
+import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -27,6 +46,43 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 	public static int heartBeatRate = 5000;
 	String directoryName = "blockDirectory";
 
+	public static void config(String filePath) throws FileNotFoundException, IOException
+	{
+		File file= new File(filePath);
+		if(file.exists())
+		{
+			try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+			    String line;
+			    while ((line = br.readLine()) != null) {
+			     String [] array = line.split("=");
+			     if(array.length !=2)
+			     {
+			    	 System.out.println("Error processing dataNodeConfigFile");
+			    	 return;
+			     }
+			     switch(array[0])
+			     {
+			     case "dataNodeID":
+			    	 				DataNode.dataNodeID=Integer.parseInt(array[1]);
+			    	 				break;
+			     case "dataNodePort":
+ 	 								DataNode.DataNodePort=Integer.parseInt(array[1]);
+ 	 								break;
+			     case "nameNodeIP":
+ 	 								DataNode.nameNodeIP= new String(array[1]);
+ 	 								break;
+			     case "nameNodePort":
+ 	 								DataNode.NameNodeport=Integer.parseInt(array[1]);
+ 	 								break;
+			     case "heartBeatRate":
+ 	 								DataNode.heartBeatRate=Integer.parseInt(array[1]);
+ 	 								break;
+ 
+			     }
+			    }
+			}	
+		}
+	}
 	@Override
 	public byte[] readBlock(byte[] input) throws RemoteException {
 		// TODO Auto-generated method stub
@@ -66,9 +122,11 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 		}
 		// write into file
 		try {
-			BufferedWriter bw = new BufferedWriter(new FileWriter(directoryName
-					+ "/" + writeBlockRequest.blockInfo.blockNumber));
-			bw.append(writeBlockRequest.data.toString());
+			//BufferedWriter bw = new BufferedWriter(new FileWriter(directoryName + "/" + writeBlockRequest.blockInfo.blockNumber));
+			//String s = new String(writeBlockRequest.data);
+			//System.out.println("DataNode WriteBlockReuqst data = " +  s);
+			FileOutputStream bw = new FileOutputStream(directoryName + "/" + writeBlockRequest.blockInfo.blockNumber);
+			bw.write(writeBlockRequest.data);
 			bw.flush();
 			bw.close();
 
@@ -106,13 +164,46 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 		}
 		/* Take data Node information from blockInfo Chaining call */
 		writeBlockResponse.status = status;
+		writeBlockRequest.blockInfo.locations.remove(0);
+		
+		if(writeBlockRequest.blockInfo.locations.size()>0){
+		//	BlockLocations blockLocations = writeBlockRequest.blockInfo.blockNumber;
+			DataNodeLocation dataNodeAddress = writeBlockRequest.blockInfo.locations.get(0);
+			IDataNode dataNode = null;
+			IpConversion ipObj = new IpConversion();
+			try{
+				Registry myreg = LocateRegistry.getRegistry(ipObj.intToIP(dataNodeAddress.ip),dataNodeAddress.port);
+				dataNode = (IDataNode) myreg.lookup("DataNode");
+				byte []wr = dataNode.writeBlock(writeBlockRequest.toProto());
+				WriteBlockResponse res = new WriteBlockResponse(wr);
+				if(res.status<0){
+					writeBlockResponse.status = -1;
+				}
+			}
+			catch(Exception e){
+				e.printStackTrace();
+			}
+			
+		}
 		return writeBlockResponse.toProto();
 	}
 
 	public static void main(String[] args) {
+		if(args.length != 1)
+		{
+			System.out.println("Invalid number of parameters");
+			System.out.println("Usage java <DataNode> <config File Path>");
+			System.exit(-1);
+		}
+		try {
+			config(args[0]);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		try {
 			Registry reg = LocateRegistry.createRegistry(DataNodePort);
-			NameNode obj = new NameNode();
+			DataNode obj = new DataNode();
 			reg.rebind("DataNode", obj);
 			System.out.println("DataNode server is running");
 		} catch (Exception e) {
@@ -144,7 +235,7 @@ class PerodicService extends TimerTask {
 	IpConversion ipObj = new IpConversion();
 	byte[] generateBlockReport() throws UnknownHostException {
 		ArrayList<Integer> blockList = new ArrayList<Integer>();
-		int ip = ipObj.packIP(Inet4Address.getLocalHost().getHostAddress().getBytes());
+		int ip = ipObj.packIP(Inet4Address.getLocalHost().getAddress());
 		File file = new File("metadata");
 		if (file.exists()) {
 			FileInputStream fis;

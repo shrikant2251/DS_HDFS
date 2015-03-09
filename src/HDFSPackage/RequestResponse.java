@@ -7,8 +7,7 @@ import HDFSPackage.Hdfs.DataNodeLocation;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-
-
+import com.google.protobuf.*;
 public interface RequestResponse {
 /****************************************************************/
 	public class BlockReportRequest{
@@ -271,7 +270,11 @@ public interface RequestResponse {
 
 		public BlockLocations(int blockNum, ArrayList<DataNodeLocation> loc){
 			blockNumber = blockNum;
-			locations = loc;
+			locations = new ArrayList<RequestResponse.DataNodeLocation>();
+			for(DataNodeLocation dnl : loc)
+			{
+				locations.add(dnl);
+			}
 		}
 		public BlockLocations(byte[] input) {
 			Hdfs.BlockLocations builder = null;
@@ -296,6 +299,7 @@ public interface RequestResponse {
 		}
 		
 		public BlockLocations() {
+			locations = new ArrayList<RequestResponse.DataNodeLocation>();
 			// TODO Auto-generated constructor stub
 		}
 		public Hdfs.BlockLocations.Builder toProtoObject() {
@@ -320,25 +324,42 @@ public interface RequestResponse {
 	public class BlockLocationRequest {
 		ArrayList<Integer> blockNums;
 
-		public BlockLocationRequest(ArrayList<Integer> blockNums) {
-			super();
-			this.blockNums = blockNums;
+		public BlockLocationRequest(ArrayList<Integer> blocks) {
+			blockNums = new ArrayList<Integer>();
+			System.out.println(" RequestResponse BlockLocationRequest Block size = " + blocks.size());
+			for( int i: blocks)
+			{
+				System.out.println(" RequestResponse BlockLocationRequest num = " + i);
+				blockNums.add(i);
+			}
 		}
 
-		BlockLocationRequest(byte[] input){
-			Hdfs.BlockReportRequest builder = null;
+		public BlockLocationRequest(byte[] input){
+			Hdfs.BlockLocationRequest builder = null;
 			try {
-				builder = Hdfs.BlockReportRequest.parseFrom(input);
+				//builder = Hdfs.BlockReportRequest.parseFrom(input);
+				builder = Hdfs.BlockLocationRequest.parseFrom(input);
 			} catch (InvalidProtocolBufferException e) {
 				e.printStackTrace();
 			}
-			blockNums = (ArrayList<Integer>) builder.getBlockNumbersList();
+			blockNums = new ArrayList<Integer>();
+			System.out.println("RequestResponse BlockLocationRequest(byte [] input) blocknum size = " + builder.getBlockNumsCount());
+			for(int i:builder.getBlockNumsList())
+			{
+				System.out.println("RequestResponse BlockLocationRequest(byte [] input) block num = " + i);
+				blockNums.add(i);
+			}
 		}
 
 		public byte[] toProto(){
 			Hdfs.BlockLocationRequest.Builder builder = Hdfs.BlockLocationRequest.newBuilder();
+			for(int i=0;i<blockNums.size();i++){
+				System.out.println("%%%%%% BlockLocationRequest block num = " + blockNums.get(i));
+			}
 			for (int i:blockNums)
-				builder.addBlockNums(i);	
+				builder.addBlockNums(i);
+			System.out.println(" RequestResponse BlockLocationRequest toProto() **** addblock size " + builder.getBlockNumsCount() );
+			System.out.println("RequestResponse BlockLocationRequest toProto() blocknum size = " + builder.getBlockNumsCount());
 			return builder.build().toByteArray();
 		}
 	}
@@ -347,9 +368,13 @@ public interface RequestResponse {
 		public int status;
 		public ArrayList<BlockLocations> blockLocations;
 		public BlockLocationResponse() {
+			blockLocations = new ArrayList<BlockLocations>();
 		}
 		public BlockLocationResponse(int st, ArrayList<BlockLocations> blocks){
-			blockLocations = blocks;
+			blockLocations = new ArrayList<BlockLocations>();
+			for(BlockLocations b: blocks){
+				blockLocations.add(b);
+			}
 			status = st;
 		}
 		public BlockLocationResponse(byte[] input){
@@ -451,10 +476,13 @@ public interface RequestResponse {
 		public int status;
 		public ArrayList<String> fileNames;
 		public ListFilesResponse() {
+			fileNames = new ArrayList<String>();
 		}
 		public ListFilesResponse(int st, ArrayList<String> files){
 			status = st;
-			fileNames = files;
+			fileNames = new ArrayList<String>();
+			for(String i:files)
+				fileNames.add(i);
 		}		
 		public ListFilesResponse(byte[] input){
 			Hdfs.ListFilesResponse builder = null;

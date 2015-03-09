@@ -1,26 +1,27 @@
 package HDFSPackage;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import com.google.protobuf.*;
 public interface INameNode extends Remote{
 
 	/* OpenFileResponse openFile(OpenFileRequest) */
 	/* Method to open a file given file name with read-write flag*/
-	byte[] openFile(byte input[]) throws RemoteException;
+	byte[] openFile(byte OpenFileRequest[]) throws RemoteException;
 	
 	/* CloseFileResponse closeFile(CloseFileRequest) */
-	byte[] closeFile(byte closeFileRequest[]) throws RemoteException;
+	byte[] closeFile(byte CloseFileRequest[]) throws RemoteException;
 	
 	/* BlockLocationResponse getBlockLocations(BlockLocationRequest) */
 	/* Method to get block locations given an array of block numbers */
-	byte[] getBlockLocations(byte blockNumbers[]) throws RemoteException;
+	byte[] getBlockLocations(byte BlockLocationRequest[]) throws RemoteException;
 	
 	/* AssignBlockResponse assignBlock(AssignBlockRequest) */
 	/* Method to assign a block which will return the replicated block locations */
-	byte[] assignBlock(byte blockLocations[]) throws RemoteException;
+	byte[] assignBlock(byte AssignBlockRequest[]) throws RemoteException;
 	
 	/* ListFilesResponse list(ListFilesRequest) */
 	/* List the file names (no directories needed for current implementation */
-	byte[] list(byte fileNames[]) throws RemoteException;
+	byte[] list(byte ListFilesRequest[]) throws RemoteException;
 	
 	/*
 		Datanode <-> Namenode interaction methods

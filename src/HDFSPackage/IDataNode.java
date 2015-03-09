@@ -2,6 +2,7 @@ package HDFSPackage;
 //import 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import com.google.protobuf.*;
 public interface IDataNode extends Remote{
 
 	/* ReadBlockResponse readBlock(ReadBlockRequest)) */
