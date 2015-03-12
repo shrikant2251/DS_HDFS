@@ -1,7 +1,7 @@
 //ok
 message BlockReportRequest {
   optional int32 id = 1; // identity of the DN. All communication to the NN uses the same id
-  optional DataNodeLocation location = 2;
+  optional DataNodeLocation location = 2;M 
   repeated int32 blockNumbers = 3;
 }
 //ok
