@@ -2,9 +2,11 @@ package HDFSPackage;
 import com.google.protobuf.*;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
@@ -94,6 +96,7 @@ public class GeneralClient {
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
+			System.out.println("GeneralClient :: Error ,  couldnot close File handle :: " + closeFileRequest.handle);
 			status = -1;
 		}
 
@@ -202,7 +205,7 @@ public class GeneralClient {
 						continue;
 					}
 			}
-			if (j >= blockLocation.locations.size()) {
+			if (j > blockLocation.locations.size()) {
 				status = -1;
 				return status;
 			}
@@ -210,22 +213,26 @@ public class GeneralClient {
 
 		if(status == 1)
 		{
-			System.out.println("Data Read Successful \n Content Of data is :: " + buffer.toString());
+			System.out.println("Data Read Successful \n Content Of data is :: \n" + buffer.toString());
 		}
-		int status1 = close(openFileResponse.handle);
 		
+		// close file
+		int status1 = close(openFileResponse.handle);
+		//System.out.println("GenClient Final statuses "+status1 + " " + status);		
+		//System.out.println("Close file status = " + status1);
+
 		if(status == -1 || status1 == -1)
 			return -1;
-		else
-			return 1;
+		else return 1;
 	}
 
-	public int write(String fileName, byte[] data) throws NotBoundException, UnknownHostException {
+	public int write(String fileName,/*byte [] data , */ String sourceFilePath) throws NotBoundException, UnknownHostException {
 		
 		int status = 1;
-		float dataSize = data.length;
-		int numOfBlocksReq = (int) Math.ceil(dataSize / blockSize);
-
+		float dataSize = 0;
+		//float dataSize = data.length
+		int numOfBlocksReq =0;
+		// int numOfBlocksReq = (int) Math.ceil(dataSize / blockSize);
 		byte[] openResponse;
 		openResponse = open(fileName, false);
 		OpenFileRespose openFileResponse = new OpenFileRespose(openResponse);
@@ -261,6 +268,21 @@ public class GeneralClient {
 			//System.out.println("GenClient Write Method status=2");
 			int i;
 			int offset = 0;
+			/**************************************************************************************************/
+			RandomAccessFile sourceFile;
+			try {
+					sourceFile = new RandomAccessFile(sourceFilePath, "r");
+					dataSize=sourceFile.length();
+					numOfBlocksReq = (int) Math.ceil(dataSize / blockSize);
+				
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				status = -1;
+				System.out.println("GeneralClient :: Error , cannot open source file");
+				e1.printStackTrace();
+				return status;
+			}
+			/****************************************************************************************/
 			for (i = 0; i < numOfBlocksReq; i++) {
 				try {
 					AssignBlockRequest assignBlockRequest = new AssignBlockRequest(openFileResponse.handle);
@@ -284,9 +306,23 @@ public class GeneralClient {
 					*/
 					int endOffset;
 					endOffset=offset+blockSize;
-					if(endOffset>data.length)
-						endOffset=data.length;
-					byte[] buffer = Arrays.copyOfRange(data,offset,endOffset);
+					if(endOffset>dataSize)
+						endOffset=(int) dataSize;
+					
+					/*************************************************************************************************/
+					byte[] buffer = new byte[endOffset];
+					try {
+						sourceFile.seek(offset);
+						sourceFile.read(buffer);
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						status = -1;
+						e1.printStackTrace();
+						break;
+					}
+					//byte[] buffer = Arrays.copyOfRange(data,offset,endOffset);
+					/*************************************************************************************************/
+					
 					offset += blockSize;
 					
 					BlockLocations blockLocations = assignBlockResponse.newBlock;
@@ -318,6 +354,9 @@ public class GeneralClient {
 		// close file
 		int status1 = close(openFileResponse.handle);
 		//System.out.println("GenClient Final statuses "+status1 + " " + status);
+		
+		//System.out.println("Close file status = " + status1);
+		
 		if(status == -1 || status1 == -1)
 			return -1;
 		else return 1;
@@ -359,14 +398,13 @@ public class GeneralClient {
 			
 		try {
 			GeneralClient client = new GeneralClient();
-			String data = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZKedar";
+			String sourceFilePath="/home/shrikant/trim_path.py";
+			//String data = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZKedar";
 			//int st = client.write("tmp2.txt",data.getBytes() );
-			//client.write("temp2.txt", data.getBytes());
-			int st1 = client.read("tmp2.txt");
-			//System.out.println("Main GenClient status " + st + st1);
-			//*/
-			System.out.println("Git commt changes");
-			client.list();
+			int st = client.write("tmp1.txt",sourceFilePath);
+			int st1 = client.read("tmp1.txt");
+			System.out.println("Status of read = " + st1  + "status of write = " + st);
+			//client.list();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

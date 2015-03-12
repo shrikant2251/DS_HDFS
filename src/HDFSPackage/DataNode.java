@@ -242,7 +242,6 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 		Timer timer = new Timer();
 		timer.scheduleAtFixedRate(perodicService, 0, heartBeatRate);
 	}
-
 }
 
 class PerodicService extends TimerTask {

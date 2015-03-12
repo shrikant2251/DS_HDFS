@@ -114,6 +114,7 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 				openFileResponse.handle = AllDataStructures.fileHandel; // used to close the file;
 				openFileResponse.blockNums = (ArrayList<Integer>) AllDataStructures.fileNameToBlockNum
 						.get(openFileRequest.fileName);
+				AllDataStructures.fileHandleToFileName.put(AllDataStructures.fileHandel, openFileRequest.fileName);
 			} else {/* File does not exist */
 				openFileResponse.status = -1; // file does not exist error in
 												// opening file
