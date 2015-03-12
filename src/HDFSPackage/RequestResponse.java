@@ -326,10 +326,10 @@ public interface RequestResponse {
 
 		public BlockLocationRequest(ArrayList<Integer> blocks) {
 			blockNums = new ArrayList<Integer>();
-			System.out.println(" RequestResponse BlockLocationRequest Block size = " + blocks.size());
+			//System.out.println(" RequestResponse BlockLocationRequest Block size = " + blocks.size());
 			for( int i: blocks)
 			{
-				System.out.println(" RequestResponse BlockLocationRequest num = " + i);
+				//System.out.println(" RequestResponse BlockLocationRequest num = " + i);
 				blockNums.add(i);
 			}
 		}
@@ -343,23 +343,23 @@ public interface RequestResponse {
 				e.printStackTrace();
 			}
 			blockNums = new ArrayList<Integer>();
-			System.out.println("RequestResponse BlockLocationRequest(byte [] input) blocknum size = " + builder.getBlockNumsCount());
+			//System.out.println("RequestResponse BlockLocationRequest(byte [] input) blocknum size = " + builder.getBlockNumsCount());
 			for(int i:builder.getBlockNumsList())
 			{
-				System.out.println("RequestResponse BlockLocationRequest(byte [] input) block num = " + i);
+				//System.out.println("RequestResponse BlockLocationRequest(byte [] input) block num = " + i);
 				blockNums.add(i);
 			}
 		}
 
 		public byte[] toProto(){
 			Hdfs.BlockLocationRequest.Builder builder = Hdfs.BlockLocationRequest.newBuilder();
-			for(int i=0;i<blockNums.size();i++){
+			/*for(int i=0;i<blockNums.size();i++){
 				System.out.println("%%%%%% BlockLocationRequest block num = " + blockNums.get(i));
-			}
+			}*/
 			for (int i:blockNums)
 				builder.addBlockNums(i);
-			System.out.println(" RequestResponse BlockLocationRequest toProto() **** addblock size " + builder.getBlockNumsCount() );
-			System.out.println("RequestResponse BlockLocationRequest toProto() blocknum size = " + builder.getBlockNumsCount());
+			//System.out.println(" RequestResponse BlockLocationRequest toProto() **** addblock size " + builder.getBlockNumsCount() );
+			//System.out.println("RequestResponse BlockLocationRequest toProto() blocknum size = " + builder.getBlockNumsCount());
 			return builder.build().toByteArray();
 		}
 	}

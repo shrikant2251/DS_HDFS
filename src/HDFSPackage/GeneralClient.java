@@ -103,7 +103,7 @@ public class GeneralClient {
 	// read file
 	public int read(String fileName) {
 
-		int status = 0;
+		int status = 1;
 
 		// Open File for read
 		byte[] openResponse;
@@ -112,7 +112,6 @@ public class GeneralClient {
 
 		// check status of openFile
 		if (openFileResponse.status == -1) {
-
 			// openFile Unsuccessful
 			status = -1;
 			return status;
@@ -126,7 +125,8 @@ public class GeneralClient {
 			in = (INameNode) myreg.lookup("NameNode");
 		} catch (Exception e) {
 			status = -1;
-			// e.printStackTrace();
+			System.out.println("GeneralClient :: RMI Error locating NameNode Registry.");
+			e.printStackTrace();
 			return status;
 		}
 
@@ -134,22 +134,27 @@ public class GeneralClient {
 		BlockLocationRequest blockLocationRequest = new BlockLocationRequest(openFileResponse.blockNums);
 
 		byte[] getBlockLocationResponse;
-		for(int i:openFileResponse.blockNums){
+		/*
+		 * for(int i:openFileResponse.blockNums){
 			System.out.println("GenClient read method openFileResponse block :" + i);
 		}
+		*/
 		try {
 			byte [] temp = blockLocationRequest.toProto();
-			System.out.println("GenClient temp byte getlocations input" + temp.length);
+			//System.out.println("GenClient temp byte getlocations input" + temp.length);
 			getBlockLocationResponse = in.getBlockLocations(temp);
 		} 
 		catch (Exception e1) {
 			// TODO Auto-generated catch block
-			System.out.println("GenClient read getBlockLocationPesponse error " + e1);
 			status = -1;
+			System.out.println("GeneralClient :: Error retrieving block locations.");
+			e1.printStackTrace();
 			return status;
 		}
 		BlockLocationResponse blockLocationResponse = new BlockLocationResponse(getBlockLocationResponse);
-		System.out.println(" GenClient read method BlockLocationResponse status = " + blockLocationResponse.status + " blockNum size = " + blockLocationResponse.blockLocations.size());
+		
+		/*
+		 * System.out.println(" GenClient read method BlockLocationResponse status = " + blockLocationResponse.status + " blockNum size = " + blockLocationResponse.blockLocations.size());
 		Iterator<BlockLocations> it = blockLocationResponse.blockLocations.iterator();
 		while(it.hasNext()){
 			BlockLocations b = it.next();
@@ -160,66 +165,66 @@ public class GeneralClient {
 				System.out.println("GenClient read method " + d.ip + " " + d.port);
 			}
 		}
+		*/
+		
 		// check status of getBlockLocations
 		if (blockLocationResponse.status == -1) {
 			status = -1;
 			return status;
 		}
 
-		// repeat for each block number
+		StringBuilder buffer = new StringBuilder();
+		// repeat for each block
 		for (int i = 0; i < blockLocationResponse.blockLocations.size(); i++) {
 			BlockLocations blockLocation = blockLocationResponse.blockLocations
 					.get(i);
 			int blockNum = blockLocation.blockNumber;
-			System.out.println(blockNum);
 
-			// repeat for each dataNodeLocation for that block number
+			// repeat for each dataNodeLocation for that block
 			int j;
 			for (j = 0; j < blockLocation.locations.size(); j++) {
 				DataNodeLocation dataNodeAddress = blockLocation.locations.get(j);
-
-				// check time stamp
-				//if (dataNodeAddress.tstamp >= System.currentTimeMillis() - AllDataStructures.thresholdTime) {
-
-					// get rmi object
 					try {
-						Registry myreg = LocateRegistry.getRegistry(
-								ipObj.intToIP(dataNodeAddress.ip),
-								dataNodeAddress.port);
+						Registry myreg = LocateRegistry.getRegistry(ipObj.intToIP(dataNodeAddress.ip),dataNodeAddress.port);
 						dataNode = (IDataNode) myreg.lookup("DataNode");
-
-						ReadBlockRequest readBlockRequest = new ReadBlockRequest(
-								blockNum);
-						byte[] buffer;
-						buffer = dataNode.readBlock(readBlockRequest.toProto());
-						ReadBlockResponse readBlockResponse = new ReadBlockResponse(
-								buffer);
+						
+						ReadBlockRequest readBlockRequest = new ReadBlockRequest(blockNum);
+						byte[] temp;
+						temp = dataNode.readBlock(readBlockRequest.toProto());
+						ReadBlockResponse readBlockResponse = new ReadBlockResponse(temp);
 
 						if (readBlockResponse.status == 1) {
 							String str = new String(readBlockResponse.data);
-							System.out.println("GenClient read method data returned = " + str);
+							buffer.append(str);
 							break;
 						}
 					} catch (Exception e) {
 						continue;
 					}
-				//}
 			}
-			if (j == blockLocation.locations.size()) {
+			if (j >= blockLocation.locations.size()) {
 				status = -1;
 				return status;
 			}
 		}
 
-		status = close(openFileResponse.handle);
-		return status;
+		if(status == 1)
+		{
+			System.out.println("Data Read Successful \n Content Of data is :: " + buffer.toString());
+		}
+		int status1 = close(openFileResponse.handle);
+		
+		if(status == -1 || status1 == -1)
+			return -1;
+		else
+			return 1;
 	}
 
 	public int write(String fileName, byte[] data) throws NotBoundException, UnknownHostException {
 		
 		int status = 1;
 		float dataSize = data.length;
-		int numOfBlocksReq = (int) Math.ceil(dataSize/ blockSize);
+		int numOfBlocksReq = (int) Math.ceil(dataSize / blockSize);
 
 		byte[] openResponse;
 		openResponse = open(fileName, false);
@@ -227,8 +232,8 @@ public class GeneralClient {
 
 		// check status of openFile
 		if (openFileResponse.status == -1) {
-			System.out.println("GeneralCLient write method Error in OpenFileResponse");
 			// openFile Unsuccessful
+			System.out.println("GeneralCLient :: Error , Cannot open File : " + fileName);
 			status = -1;
 			return status;
 		}
@@ -241,13 +246,19 @@ public class GeneralClient {
 			in = (INameNode) myreg.lookup("NameNode");
 		} catch (Exception e) {
 			status = -1;
+			System.out.println("GeneralClient :: RMI Error locating NameNode registry");
 			e.printStackTrace();
 			return status;
 		}
 
-		if (openFileResponse.status == 1 || openFileResponse.status == 2){
+		if (openFileResponse.status == 1){
+			System.out.println("GeneralClient :: Error , rewrinting of existing file not allowed");
+			status = -1;
+			return status;
+		}
+		else if( openFileResponse.status == 2){
 			// create new file in write mode
-			System.out.println("GenClient Write Method status=2");
+			//System.out.println("GenClient Write Method status=2");
 			int i;
 			int offset = 0;
 			for (i = 0; i < numOfBlocksReq; i++) {
@@ -260,55 +271,60 @@ public class GeneralClient {
 					// assign block fails
 					if (assignBlockResponse.status == -1) {
 						status = -1;
-						System.out.println("GenClient write method assignBlockresponse error");
+						System.out.println("GeneralClient :: Error getting new block from NameNode");
 						break;
 					}
-
-					BlockLocations blockLocations = assignBlockResponse.newBlock;
-					System.out.println("GenClient assignBlock = " + blockLocations.blockNumber);
+					/*
+					 * System.out.println("GenClient assignBlock = " + blockLocations.blockNumber);
 					Iterator<DataNodeLocation> it = blockLocations.locations.iterator();
 					while(it.hasNext()){
 						DataNodeLocation d = it.next();
 						System.out.println(d.ip + " " + d.port + " " + d.tstamp);
 					}
-					
+					*/
 					int endOffset;
 					endOffset=offset+blockSize;
 					if(endOffset>data.length)
 						endOffset=data.length;
-					
-					byte[] buffer = Arrays.copyOfRange(data,offset, endOffset);
-					
-					WriteBlockRequest writeBlockRequest = new WriteBlockRequest(blockLocations,buffer);
+					byte[] buffer = Arrays.copyOfRange(data,offset,endOffset);
 					offset += blockSize;
+					
+					BlockLocations blockLocations = assignBlockResponse.newBlock;
+					WriteBlockRequest writeBlockRequest = new WriteBlockRequest(blockLocations,buffer);
 					DataNodeLocation dataNodeAddress = blockLocations.locations.get(0);
-					System.out.println(ipObj.intToIP(dataNodeAddress.ip));
-					Registry myreg = LocateRegistry.getRegistry(ipObj.intToIP(dataNodeAddress.ip),dataNodeAddress.port);
-					dataNode = (IDataNode) myreg.lookup("DataNode");
-					byte[] writeResponse = dataNode.writeBlock(writeBlockRequest.toProto());
-					WriteBlockResponse wr = new WriteBlockResponse(writeResponse);
-					if(wr.status<0){
+					try{
+						Registry myreg = LocateRegistry.getRegistry(ipObj.intToIP(dataNodeAddress.ip),dataNodeAddress.port);
+						dataNode = (IDataNode) myreg.lookup("DataNode");
+						byte[] writeResponse = dataNode.writeBlock(writeBlockRequest.toProto());
+						WriteBlockResponse wr = new WriteBlockResponse(writeResponse);
+						if(wr.status == -1){
+							status = -1;
+						}
+					}catch(Exception e){
 						status = -1;
+						System.out.println("GeneralClient :: Error , Writing data block to DataNode.");
+						e.printStackTrace();
 					}
-
 				} catch (RemoteException e) {
 					status = -1;
+					System.out.println("GeneralClient :: Error , Writing data block to dataNode.");
 					e.printStackTrace();
+				}
+				if(status == -1){
 					break;
 				}
 			}
 		}
 		// close file
 		int status1 = close(openFileResponse.handle);
-		System.out.println("GenClient Final statuses "+status1 + " " + status);
-		if(status<0 || status1<0)
-		return -1;
+		//System.out.println("GenClient Final statuses "+status1 + " " + status);
+		if(status == -1 || status1 == -1)
+			return -1;
 		else return 1;
 				
 	}
 	int list(){
 		ListFilesRequest listFilesRequest = new ListFilesRequest(".");
-		//listFilesRequest.toProto();
 		int status = 1;
 		INameNode in = null;
 		try {
@@ -316,8 +332,9 @@ public class GeneralClient {
 			in = (INameNode) myreg.lookup("NameNode");
 			byte []fileNames = in.list(listFilesRequest.toProto());
 			ListFilesResponse listFilesResponse = new ListFilesResponse(fileNames);
+			System.out.println("List of files");
 			for(String file:listFilesResponse.fileNames){
-				System.out.println("GenClient File listing file Namer : " + file);
+				System.out.println(file);
 			}
 		} catch (Exception e) {
 			status = -1;
@@ -350,7 +367,6 @@ public class GeneralClient {
 			//*/
 			System.out.println("Git commt changes");
 			client.list();
-		//	in.test();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

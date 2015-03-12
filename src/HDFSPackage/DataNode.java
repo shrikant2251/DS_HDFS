@@ -100,6 +100,7 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 		// TODO Auto-generated method stub
 		ReadBlockRequest readBlockRequest = new ReadBlockRequest(input);
 		ReadBlockResponse readBlockResponse = new ReadBlockResponse();
+		System.out.println("DataNode :: Request for reading block number # " + readBlockRequest.blockNumber);
 		try {
 			File file = new File(directoryName + "/"
 					+ readBlockRequest.blockNumber);
@@ -114,9 +115,10 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 				readBlockResponse.status = -1;
 			}
 		} catch (IOException e) {
+			readBlockResponse.status=-1;
 			e.printStackTrace();
 		}
-		// readBlockRequest.blockNumber;
+		//System.out.println("DataNode :: Response status for reading block # " + readBlockRequest.blockNumber + " is : " +readBlockResponse.status);
 		return readBlockResponse.toProto();
 	}
 
@@ -124,24 +126,20 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 	public byte[] writeBlock(byte[] input) throws RemoteException {
 		// TODO Auto-generated method stub
 		// status successful = 1 unsuccessful = -1
-		System.out.println("DataNode writeBlock");
 		int status = 1;
 		WriteBlockRequest writeBlockRequest = new WriteBlockRequest(input);
 		WriteBlockResponse writeBlockResponse = new WriteBlockResponse();
+		System.out.println("DataNode :: Request for writing block number # " + writeBlockRequest.blockInfo.blockNumber);
 		File dir = new File(directoryName);
 		if (!dir.exists()) {
 			dir.mkdir();
 		}
 		// write into file
 		try {
-			//BufferedWriter bw = new BufferedWriter(new FileWriter(directoryName + "/" + writeBlockRequest.blockInfo.blockNumber));
-			//String s = new String(writeBlockRequest.data);
-			//System.out.println("DataNode WriteBlockReuqst data = " +  s);
 			FileOutputStream bw = new FileOutputStream(directoryName + "/" + writeBlockRequest.blockInfo.blockNumber);
 			bw.write(writeBlockRequest.data);
 			bw.flush();
 			bw.close();
-
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			status = -1;
@@ -167,36 +165,41 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 				String data = "" + writeBlockRequest.blockInfo.blockNumber;
 				bw.append(data);
 			}
-			//
 			bw.flush();
 			bw.close();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 		/* Take data Node information from blockInfo Chaining call */
 		writeBlockResponse.status = status;
 		writeBlockRequest.blockInfo.locations.remove(0);
-		
+	
 		if(writeBlockRequest.blockInfo.locations.size()>0){
-		//	BlockLocations blockLocations = writeBlockRequest.blockInfo.blockNumber;
 			DataNodeLocation dataNodeAddress = writeBlockRequest.blockInfo.locations.get(0);
 			IDataNode dataNode = null;
 			IpConversion ipObj = new IpConversion();
+			
 			try{
 				Registry myreg = LocateRegistry.getRegistry(ipObj.intToIP(dataNodeAddress.ip),dataNodeAddress.port);
 				dataNode = (IDataNode) myreg.lookup("DataNode");
 				byte []wr = dataNode.writeBlock(writeBlockRequest.toProto());
 				WriteBlockResponse res = new WriteBlockResponse(wr);
-				if(res.status<0){
+				
+				if(res.status ==-1 && writeBlockResponse.status == -1){
 					writeBlockResponse.status = -1;
+				}
+				else
+				{
+					writeBlockResponse.status = 1;
 				}
 			}
 			catch(Exception e){
 				e.printStackTrace();
 			}
-			
 		}
+		//System.out.println("DataNode :: Response status for reading block # " + writeBlockRequest.blockInfo.blockNumber + " is : " + writeBlockResponse.status);
 		return writeBlockResponse.toProto();
 	}
 
@@ -213,9 +216,7 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		/*if (System.getSecurityManager() == null) {
-            System.setSecurityManager(new SecurityManager());
-        }*/
+		
 		try {
 			
 			Registry reg = LocateRegistry.createRegistry(DataNodePort);
@@ -223,16 +224,18 @@ public class DataNode extends UnicastRemoteObject implements IDataNode {
 			reg.rebind("DataNode", obj);
 			System.out.println("DataNode server is running");
 		} catch (Exception e) {
+			System.out.println("DataNode :: Error While creating RMI registry.");
 			e.printStackTrace();
 		}
 		Registry myreg;
 		INameNode in = null;
 		try {
-			System.out.println("NameNode IP : "+nameNodeIP);
+			//System.out.println("NameNode IP : "+nameNodeIP);
 			myreg = LocateRegistry.getRegistry(nameNodeIP, NameNodeport);
 			in = (INameNode) myreg.lookup("NameNode");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
+			System.out.println("DataNode :: Error While looking up for NameNode RMI registry. NameNode IP is :: " + nameNodeIP);
 			e.printStackTrace();
 		}
 		TimerTask perodicService = new PerodicService(in);
@@ -260,8 +263,7 @@ class PerodicService extends TimerTask {
 			FileInputStream fis;
 			try {
 				fis = new FileInputStream(file);
-				BufferedReader reader = new BufferedReader(
-						new InputStreamReader(fis));
+				BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
 				String line = reader.readLine();
 				fis.close();
 				String[] blockNums = line.split(",");
@@ -288,9 +290,10 @@ class PerodicService extends TimerTask {
 	@Override
 	public void run() {
 		try {
+			//Remember to remove this comment
+			//System.out.println("DataNode :: Generate Heart beat and block report.");
 			in.blockReport(generateBlockReport());
 			in.heartBeat(generateDataNodeAddress());
-			//System.out.println("DataNode alive !!!");
 		} catch (RemoteException | UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
