@@ -80,6 +80,7 @@ public class NameNode extends UnicastRemoteObject implements INameNode {
 		super();
 		// TODO Auto-generated constructor stub
 	}
+	
 
 	/* Store the fileName and corresponding list of blocks */
 	// HashMap<String,ArrayList<Integer> > fileNameToBlockNum = new
